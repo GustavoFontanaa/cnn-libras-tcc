@@ -1,0 +1,6 @@
+temp/*.png
+main/cnn/__pycache__
+models/
+*.yml
+cnn-libras
+logs
