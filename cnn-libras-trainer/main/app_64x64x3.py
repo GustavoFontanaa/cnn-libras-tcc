@@ -11,7 +11,7 @@ LETTERS = {
     '14': 'R', '15': 'S', '16': 'T', '17': 'U', '18': 'V', '19': 'W', '20': 'Y'
 }
 
-MODEL_PATH = '../models/cnn_model_LIBRAS_12_03_2025_00_43.h5'
+MODEL_PATH = '../models/model.h5'
 classifier = load_model(MODEL_PATH)
 
 def nothing(x):
