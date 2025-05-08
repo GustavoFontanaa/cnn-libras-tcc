@@ -36,7 +36,7 @@ This project aims to create a sign language recognition system for Libras (Brazi
 To convert the saved `.h5` model to a JSON format compatible with TensorFlow.js, use the following command:
 
 ```bash
-tensorflowjs_converter --input_format=keras --output_format=tfjs_layers_model cnn_model_LIBRAS_12_03_2025_00_43.h5 model_tfjs
+tensorflowjs_converter --input_format=keras --output_format=tfjs_layers_model input_model.h5 model_tfjs
 ```
 
 Replace `modelo.h5` with the path to your model and `pasta_destino` with the directory where you want to save the converted files.

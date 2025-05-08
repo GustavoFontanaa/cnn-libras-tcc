@@ -1,123 +1,43 @@
-<video id="webcam" autoplay playsinline width="640" height="480"
-  style="transform: scaleX(-1); position: absolute; z-index: 1;"></video>
-<canvas id="overlay" width="640" height="480" style="position: absolute; z-index: 2;"></canvas>
-<canvas id="canvas" width="64" height="64" style="display:none;"></canvas>
-<canvas id="roi" width="196" height="196" style="margin-top: 490px;"></canvas>
-<h2 id="result" style="margin-top: 30px;">Carregando modelo...</h2>
+<!DOCTYPE html>
+<html lang="pt-br" class="transition-colors duration-500">
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reconhecimento de Libras</title>
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+</head>
 
-<script>
-  const IMAGE_X = 64, IMAGE_Y = 64;
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-500">
+  <div class="w-full flex justify-center sm:justify-end sm:px-8 mt-4">
+    <button id="toggleTheme" class="botao">🌗 Alternar Tema</button>
+    <button id="toggleLandmarks" class="botao ml-4">🖐️ Mostrar Landmarks</button>
+  </div>
 
-  const LETTERS = {
-    0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G',
-    7: 'I', 8: 'L', 9: 'M', 10: 'N', 11: 'O', 12: 'P', 13: 'Q',
-    14: 'R', 15: 'S', 16: 'T', 17: 'U', 18: 'V', 19: 'W', 20: 'Y'
-  };
+  <div id="container" class="flex flex-col items-center justify-center p-4">
+    <h1 class="sm:text-2xl text-xl font-bold mb-4">Reconhecimento de Sinais em Libras</h1>
 
-  const video = document.getElementById('webcam');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const roiCanvas = document.getElementById('roi');
-  const roiCtx = roiCanvas.getContext('2d');
-  const resultEl = document.getElementById('result');
-  const overlay = document.getElementById('overlay');
-  const overlayCtx = overlay.getContext('2d');
+    <div id="videoWrapper">
+      <video id="webcam" autoplay playsinline width="640" height="480" class="w-full"></video>
+      <canvas id="overlay"></canvas>
+    </div>
 
-  let model;
-  let handDetected = false;
+    <canvas id="canvas" width="64" height="64" style="display: none;"></canvas>
+    <canvas id="roi" width="240" height="240" class="mt-4 border rounded"></canvas>
 
-  async function setupCamera() {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-    return new Promise(resolve => {
-      video.onloadedmetadata = () => resolve(video);
-    });
-  }
+    <h2 id="result" class="mt-4 text-lg text-blue-600 font-medium">Carregando modelo...</h2>
+  </div>
 
-  async function loadModel() {
-    model = await tf.loadLayersModel('tfjs_model/model.json');
-    resultEl.innerText = "Modelo carregado!";
-  }
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="script.js"></script>
+</body>
 
-  function drawROIBox() {
-    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-    overlayCtx.strokeStyle = handDetected ? 'lime' : 'red';
-    overlayCtx.lineWidth = 2;
-    const roiX = (overlay.width - 196) / 2;
-    const roiY = (overlay.height - 196) / 2;
-    overlayCtx.strokeRect(roiX, roiY, 196, 196);
-  }
-
-  function predict() {
-    drawROIBox();
-
-    if (!handDetected) {
-      resultEl.innerText = "Nenhuma mão detectada.";
-      return;
-    }
-
-    const sx = (video.videoWidth - 196) / 2;
-    const sy = (video.videoHeight - 196) / 2;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, IMAGE_X, IMAGE_Y);
-    ctx.drawImage(video, sx, sy, 196, 196, 0, 0, IMAGE_X, IMAGE_Y);
-    roiCtx.drawImage(video, sx, sy, 196, 196, 0, 0, 196, 196);
-
-    const imageData = ctx.getImageData(0, 0, IMAGE_X, IMAGE_Y);
-    const input = tf.browser.fromPixels(imageData)
-      .toFloat()
-      .div(255.0)
-      .expandDims();
-
-    model.predict(input).array().then(arr => {
-      const probs = arr[0];
-      const maxIndex = probs.indexOf(Math.max(...probs));
-      const prob = Math.max(...probs) * 100;
-      resultEl.innerText = `Letra: ${LETTERS[maxIndex]} (${prob.toFixed(1)}%)`;
-      console.log("Prediction:", probs);
-    });
-
-    input.dispose();
-  }
-
-  function setupHands() {
-    const hands = new Hands({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
-
-    hands.onResults(results => {
-      handDetected = results.multiHandLandmarks && results.multiHandLandmarks.length > 0;
-    });
-
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({ image: video });
-      },
-      width: 640,
-      height: 480
-    });
-
-    camera.start();
-  }
-
-  async function init() {
-    await setupCamera();
-    await loadModel();
-    setupHands();
-    setInterval(predict, 1000);
-  }
-
-  init();
-</script>
+</html>
