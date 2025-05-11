@@ -115,11 +115,17 @@ print('[INFO] Gerando matriz de confusão...')
 Y_pred = model.predict(test_set, steps=(test_set.n // test_set.batch_size + 1))
 y_pred = np.argmax(Y_pred, axis=1)
 
-cm = confusion_matrix(test_set.classes, y_pred)
-cm_df = pd.DataFrame(cm, index=[i for i in range(CLASS)], columns=[i for i in range(CLASS)])
+y_true = test_set.classes
 
-plt.figure(figsize=(10, 8))
-sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues', xticklabels=True, yticklabels=True)
+class_indices = training_set.class_indices
+index_to_label = {v: k for k, v in class_indices.items()}
+labels = [index_to_label[i] for i in range(CLASS)]
+
+cm = confusion_matrix(y_true, y_pred)
+cm_df = pd.DataFrame(cm, index=labels, columns=labels)
+
+plt.figure(figsize=(12, 10))
+sns.heatmap(cm_df, annot=True, fmt='d', cmap='Blues')
 plt.title('Matriz de Confusão')
 plt.xlabel('Classe Predita')
 plt.ylabel('Classe Real')
